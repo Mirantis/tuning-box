@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = tuning_box
+omit = tuning_box/openstack/*
+
+[report]
+ignore_errors = True
