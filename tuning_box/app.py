@@ -33,6 +33,13 @@ class Namespace(flask_restful.Resource):
         else:
             return db.Namespace.query.get_or_404(namespace_id)
 
+    @flask_restful.marshal_with(namespace_fields)
+    def post(self):
+        namespace = db.Namespace(name=flask.request.json['name'])
+        db.db.session.add(namespace)
+        db.db.session.commit()
+        return namespace, 201
+
 
 def build_app():
     app = flask.Flask(__name__)

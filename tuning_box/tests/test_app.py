@@ -26,6 +26,18 @@ class JSONResponse(wrappers.BaseResponse):
         return json.loads(self.data.decode(self.charset))
 
 
+class Client(testing.FlaskClient):
+    def __init__(self, app):
+        super(Client, self).__init__(app, response_wrapper=JSONResponse)
+
+    def open(self, *args, **kwargs):
+        data = kwargs.get('data')
+        if data is not None:
+            kwargs['data'] = json.dumps(data)
+            kwargs['content_type'] = 'application/json'
+        return super(Client, self).open(*args, **kwargs)
+
+
 class TestApp(base.TestCase):
     def setUp(self):
         super(TestApp, self).setUp()
@@ -33,8 +45,7 @@ class TestApp(base.TestCase):
         self.app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///'
         with self.app.app_context():
             db.db.create_all()
-        self.client = testing.FlaskClient(self.app,
-                                          response_wrapper=JSONResponse)
+        self.client = Client(self.app)
 
     def test_get_namespaces_empty(self):
         res = self.client.get('/namespaces')
@@ -62,3 +73,8 @@ class TestApp(base.TestCase):
     def test_get_one_namespace_404(self):
         res = self.client.get('/namespaces/3')
         self.assertEqual(res.status_code, 404)
+
+    def test_post(self):
+        res = self.client.post('/namespaces', data={'name': 'nsname'})
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(res.json, {'id': 1, 'name': 'nsname'})
