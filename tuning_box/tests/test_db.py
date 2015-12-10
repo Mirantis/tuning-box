@@ -19,8 +19,8 @@ from tuning_box.tests import base
 class TestDB(base.TestCase):
     def test_create_all(self):
         app = flask.Flask('test')
-        db.db.init_app(app)
         app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///'
         app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  # silence warning
+        db.db.init_app(app)
         with app.app_context():
             db.db.create_all()
