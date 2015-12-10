@@ -78,3 +78,34 @@ class TestApp(base.TestCase):
         res = self.client.post('/namespaces', data={'name': 'nsname'})
         self.assertEqual(res.status_code, 201)
         self.assertEqual(res.json, {'id': 1, 'name': 'nsname'})
+
+    def test_put(self):
+        with self.app.app_context():
+            namespace = db.Namespace(id=3, name='nsname')
+            db.db.session.add(namespace)
+            db.db.session.commit()
+        res = self.client.put('/namespaces/3', data={'name': 'nsname1'})
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(res.json, {'id': 3, 'name': 'nsname1'})
+        with self.app.app_context():
+            namespace = db.Namespace.query.get(3)
+            self.assertEqual(namespace.name, 'nsname1')
+
+    def test_put_404(self):
+        res = self.client.put('/namespaces/3', data={'name': 'nsname1'})
+        self.assertEqual(res.status_code, 404)
+
+    def test_delete(self):
+        with self.app.app_context():
+            namespace = db.Namespace(id=3, name='nsname')
+            db.db.session.add(namespace)
+            db.db.session.commit()
+        res = self.client.delete('/namespaces/3')
+        self.assertEqual(res.status_code, 204)
+        with self.app.app_context():
+            namespace = db.Namespace.query.get(3)
+            self.assertIsNone(namespace)
+
+    def test_delete_404(self):
+        res = self.client.delete('/namespaces/3')
+        self.assertEqual(res.status_code, 404)

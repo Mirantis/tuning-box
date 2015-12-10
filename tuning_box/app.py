@@ -40,6 +40,19 @@ class Namespace(flask_restful.Resource):
         db.db.session.commit()
         return namespace, 201
 
+    @flask_restful.marshal_with(namespace_fields)
+    def put(self, namespace_id):
+        namespace = db.Namespace.query.get_or_404(namespace_id)
+        namespace.name = flask.request.json['name']
+        db.db.session.commit()
+        return namespace, 201
+
+    def delete(self, namespace_id):
+        namespace = db.Namespace.query.get_or_404(namespace_id)
+        db.db.session.delete(namespace)
+        db.db.session.commit()
+        return None, 204
+
 
 def build_app():
     app = flask.Flask(__name__)
