@@ -102,6 +102,7 @@ class TestApp(base.TestCase):
             db.db.session.commit()
         res = self.client.delete('/namespaces/3')
         self.assertEqual(res.status_code, 204)
+        self.assertEqual(res.data, '')
         with self.app.app_context():
             namespace = db.Namespace.query.get(3)
             self.assertIsNone(namespace)
