@@ -26,21 +26,20 @@ namespace_fields = {
 
 @api.resource('/namespaces', '/namespaces/<int:namespace_id>')
 class Namespace(flask_restful.Resource):
-    @flask_restful.marshal_with(namespace_fields)
+    method_decorators = [flask_restful.marshal_with(namespace_fields)]
+
     def get(self, namespace_id=None):
         if namespace_id is None:
             return db.Namespace.query.all()
         else:
             return db.Namespace.query.get_or_404(namespace_id)
 
-    @flask_restful.marshal_with(namespace_fields)
     def post(self):
         namespace = db.Namespace(name=flask.request.json['name'])
         db.db.session.add(namespace)
         db.db.session.commit()
         return namespace, 201
 
-    @flask_restful.marshal_with(namespace_fields)
     def put(self, namespace_id):
         namespace = db.Namespace.query.get_or_404(namespace_id)
         namespace.name = flask.request.json['name']
@@ -78,14 +77,14 @@ component_fields = {
 
 @api.resource('/components', '/components/<int:component_id>')
 class Component(flask_restful.Resource):
-    @flask_restful.marshal_with(component_fields)
+    method_decorators = [flask_restful.marshal_with(component_fields)]
+
     def get(self, component_id=None):
         if component_id is None:
             return db.Component.query.all()
         else:
             return db.Component.query.get_or_404(component_id)
 
-    @flask_restful.marshal_with(component_fields)
     def post(self):
         component = db.Component(name=flask.request.json['name'])
         component.schemas = []
