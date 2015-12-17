@@ -96,7 +96,7 @@ class TestApp(base.TestCase):
         self._fixture()
         res = self.client.delete('/namespaces/3')
         self.assertEqual(res.status_code, 204)
-        self.assertEqual(res.data, '')
+        self.assertEqual(res.data, b'')
         with self.app.app_context():
             namespace = db.Namespace.query.get(3)
             self.assertIsNone(namespace)
