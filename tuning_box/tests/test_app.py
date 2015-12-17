@@ -67,6 +67,8 @@ class TestApp(base.TestCase):
                 )],
             )
             db.db.session.add(component)
+            environment = db.Environment(id=9, components=[component])
+            db.db.session.add(environment)
             db.db.session.commit()
 
     def test_get_namespaces_empty(self):
@@ -187,4 +189,49 @@ class TestApp(base.TestCase):
 
     def test_delete_component_404(self):
         res = self.client.delete('/components/7')
+        self.assertEqual(res.status_code, 404)
+
+    def test_get_environments_empty(self):
+        res = self.client.get('/environments')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json, [])
+
+    def test_get_environments(self):
+        self._fixture()
+        res = self.client.get('/environments')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json, [{'id': 9, 'components': [7]}])
+
+    def test_get_one_environment(self):
+        self._fixture()
+        res = self.client.get('/environments/9')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json, {'id': 9, 'components': [7]})
+
+    def test_get_one_environment_404(self):
+        res = self.client.get('/environments/9')
+        self.assertEqual(res.status_code, 404)
+
+    def test_post_environment(self):
+        self._fixture()
+        res = self.client.post('/environments', data={'components': [7]})
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(res.json, {'id': 10, 'components': [7]})
+
+    def test_post_environment_404(self):
+        self._fixture()
+        res = self.client.post('/environments', data={'components': [8]})
+        self.assertEqual(res.status_code, 404)
+
+    def test_delete_environment(self):
+        self._fixture()
+        res = self.client.delete('/environments/9')
+        self.assertEqual(res.status_code, 204)
+        self.assertEqual(res.data, b'')
+        with self.app.app_context():
+            environment = db.Environment.query.get(9)
+            self.assertIsNone(environment)
+
+    def test_delete_environment_404(self):
+        res = self.client.delete('/environments/9')
         self.assertEqual(res.status_code, 404)

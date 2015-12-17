@@ -108,6 +108,36 @@ class Component(flask_restful.Resource):
         db.db.session.commit()
         return None, 204
 
+environment_fields = {
+    'id': fields.Integer,
+    'components': fields.List(fields.Integer(attribute='id')),
+}
+
+
+@api.resource('/environments', '/environments/<int:environment_id>')
+class Environment(flask_restful.Resource):
+    method_decorators = [flask_restful.marshal_with(environment_fields)]
+
+    def get(self, environment_id=None):
+        if environment_id is None:
+            return db.Environment.query.all()
+        else:
+            return db.Environment.query.get_or_404(environment_id)
+
+    def post(self):
+        component_ids = flask.request.json['components']
+        components = [db.Component.query.get_or_404(i) for i in component_ids]
+        environment = db.Environment(components=components)
+        db.db.session.add(environment)
+        db.db.session.commit()
+        return environment, 201
+
+    def delete(self, environment_id):
+        environment = db.Environment.query.get_or_404(environment_id)
+        db.db.session.delete(environment)
+        db.db.session.commit()
+        return None, 204
+
 
 def build_app():
     app = flask.Flask(__name__)
