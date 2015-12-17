@@ -51,6 +51,22 @@ class TestApp(base.TestCase):
         with self.app.app_context():
             namespace = db.Namespace(id=3, name='nsname')
             db.db.session.add(namespace)
+            component = db.Component(
+                id=7,
+                name='component1',
+                schemas=[db.Schema(
+                    id=5,
+                    name='schema1',
+                    namespace_id=namespace.id,
+                    content='schema1_content',
+                )],
+                templates=[db.Template(
+                    id=5,
+                    name='template1',
+                    content='template1_content',
+                )],
+            )
+            db.db.session.add(component)
             db.db.session.commit()
 
     def test_get_namespaces_empty(self):
@@ -103,4 +119,72 @@ class TestApp(base.TestCase):
 
     def test_delete_namepsace_404(self):
         res = self.client.delete('/namespaces/3')
+        self.assertEqual(res.status_code, 404)
+
+    def test_get_components_empty(self):
+        res = self.client.get('/components')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json, [])
+
+    @property
+    def _component_json(self):
+        return {
+            'id': 7,
+            'name': 'component1',
+            'schemas': [{
+                'id': 5,
+                'name': 'schema1',
+                'component_id': 7,
+                'namespace_id': 3,
+                'content': 'schema1_content',
+            }],
+            'templates': [{
+                'id': 5,
+                'name': 'template1',
+                'component_id': 7,
+                'content': 'template1_content',
+            }],
+        }
+
+    def test_get_components(self):
+        self._fixture()
+        res = self.client.get('/components')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json, [self._component_json])
+
+    def test_get_one_component(self):
+        self._fixture()
+        res = self.client.get('/components/7')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json, self._component_json)
+
+    def test_get_one_component_404(self):
+        res = self.client.get('/components/7')
+        self.assertEqual(res.status_code, 404)
+
+    def test_post_component(self):
+        self._fixture()  # Just for namespace
+        json = self._component_json
+        del json['id']
+        del json['schemas'][0]['id'], json['schemas'][0]['component_id']
+        del json['templates'][0]['id'], json['templates'][0]['component_id']
+        res = self.client.post('/components', data=json)
+        self.assertEqual(res.status_code, 201)
+        json['id'] = 8
+        json['schemas'][0]['component_id'] = json['id']
+        json['templates'][0]['component_id'] = json['id']
+        json['schemas'][0]['id'] = json['templates'][0]['id'] = 6
+        self.assertEqual(res.json, json)
+
+    def test_delete_component(self):
+        self._fixture()
+        res = self.client.delete('/components/7')
+        self.assertEqual(res.status_code, 204)
+        self.assertEqual(res.data, b'')
+        with self.app.app_context():
+            component = db.Component.query.get(7)
+            self.assertIsNone(component)
+
+    def test_delete_component_404(self):
+        res = self.client.delete('/components/7')
         self.assertEqual(res.status_code, 404)
