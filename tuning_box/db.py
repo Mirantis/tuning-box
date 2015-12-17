@@ -59,3 +59,15 @@ _environment_components = db.Table(
 class Environment(db.Model):
     id = pk()
     components = db.relationship(Component, secondary=_environment_components)
+
+
+class EnvironmentSchemaValues(db.Model):
+    environment_id = db.Column(pk_type, db.ForeignKey(Environment.id),
+                               primary_key=True)
+    schema_id = db.Column(pk_type, db.ForeignKey(Environment.id),
+                          primary_key=True)
+    values = db.Column(db.Text)
+
+    __table_args__ = (
+        db.PrimaryKeyConstraint(environment_id, schema_id),
+    )

@@ -139,6 +139,20 @@ class Environment(flask_restful.Resource):
         return None, 204
 
 
+@api.resource(
+    '/environments/<int:environment_id>/schema/<int:schema_id>/values')
+class EnvironmentSchemaValues(flask_restful.Resource):
+    def put(self, environment_id, schema_id):
+        esv = db.EnvironmentSchemaValues.query.get((environment_id, schema_id))
+        if esv is None:
+            esv = db.EnvironmentSchemaValues(
+                environment_id=environment_id, schema_id=schema_id)
+            db.db.session.add(esv)
+        esv.values = flask.request.json
+        db.db.session.commit()
+        return None, 204
+
+
 def build_app():
     app = flask.Flask(__name__)
     api.init_app(app)  # init_app spoils Api object if app is a blueprint
