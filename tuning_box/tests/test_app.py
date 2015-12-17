@@ -121,11 +121,6 @@ class TestApp(base.TestCase):
         res = self.client.delete('/namespaces/3')
         self.assertEqual(res.status_code, 404)
 
-    def test_get_components_empty(self):
-        res = self.client.get('/components')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, [])
-
     @property
     def _component_json(self):
         return {
@@ -145,6 +140,11 @@ class TestApp(base.TestCase):
                 'content': 'template1_content',
             }],
         }
+
+    def test_get_components_empty(self):
+        res = self.client.get('/components')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json, [])
 
     def test_get_components(self):
         self._fixture()
