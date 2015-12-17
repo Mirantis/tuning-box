@@ -47,25 +47,25 @@ class TestApp(base.TestCase):
             db.db.create_all()
         self.client = Client(self.app)
 
+    def _fixture(self):
+        with self.app.app_context():
+            namespace = db.Namespace(id=3, name='nsname')
+            db.db.session.add(namespace)
+            db.db.session.commit()
+
     def test_get_namespaces_empty(self):
         res = self.client.get('/namespaces')
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json, [])
 
     def test_get_namespaces(self):
-        with self.app.app_context():
-            namespace = db.Namespace(id=3, name='nsname')
-            db.db.session.add(namespace)
-            db.db.session.commit()
+        self._fixture()
         res = self.client.get('/namespaces')
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json, [{'id': 3, 'name': 'nsname'}])
 
     def test_get_one_namespace(self):
-        with self.app.app_context():
-            namespace = db.Namespace(id=3, name='nsname')
-            db.db.session.add(namespace)
-            db.db.session.commit()
+        self._fixture()
         res = self.client.get('/namespaces/3')
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json, {'id': 3, 'name': 'nsname'})
@@ -80,10 +80,7 @@ class TestApp(base.TestCase):
         self.assertEqual(res.json, {'id': 1, 'name': 'nsname'})
 
     def test_put(self):
-        with self.app.app_context():
-            namespace = db.Namespace(id=3, name='nsname')
-            db.db.session.add(namespace)
-            db.db.session.commit()
+        self._fixture()
         res = self.client.put('/namespaces/3', data={'name': 'nsname1'})
         self.assertEqual(res.status_code, 201)
         self.assertEqual(res.json, {'id': 3, 'name': 'nsname1'})
@@ -96,10 +93,7 @@ class TestApp(base.TestCase):
         self.assertEqual(res.status_code, 404)
 
     def test_delete(self):
-        with self.app.app_context():
-            namespace = db.Namespace(id=3, name='nsname')
-            db.db.session.add(namespace)
-            db.db.session.commit()
+        self._fixture()
         res = self.client.delete('/namespaces/3')
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, '')
