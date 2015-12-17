@@ -238,10 +238,11 @@ class TestApp(base.TestCase):
 
     def test_put_esv(self):
         self._fixture()
-        res = self.client.put('/environments/9/schema/5/values', data="values")
+        res = self.client.put('/environments/9/schema/5/values',
+                              data={'k': 'v'})
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, b'')
         with self.app.app_context():
             esv = db.EnvironmentSchemaValues.query.get((9, 5))
             self.assertIsNotNone(esv)
-            self.assertEqual(esv.values, 'values')
+            self.assertEqual(esv.values, {'k': 'v'})

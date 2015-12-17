@@ -11,12 +11,24 @@
 # under the License.
 
 import functools
+import json
 
 import flask_sqlalchemy
+from sqlalchemy import types
 
 db = flask_sqlalchemy.SQLAlchemy()
 pk_type = db.Integer
 pk = functools.partial(db.Column, pk_type, primary_key=True)
+
+
+class Json(types.TypeDecorator):
+    impl = db.Text
+
+    def process_bind_param(self, value, dialect):
+        return json.dumps(value)
+
+    def process_result_value(self, value, dialect):
+        return json.loads(value)
 
 
 class Namespace(db.Model):
@@ -38,14 +50,14 @@ class Schema(db.Model):
     name = db.Column(db.String(128))
     component_id = db.Column(pk_type, db.ForeignKey(Component.id))
     namespace_id = db.Column(pk_type, db.ForeignKey(Namespace.id))
-    content = db.Column(db.Text)
+    content = db.Column(Json)
 
 
 class Template(db.Model):
     id = pk()
     name = db.Column(db.String(128))
     component_id = db.Column(pk_type, db.ForeignKey(Component.id))
-    content = db.Column(db.Text)
+    content = db.Column(Json)
 
 # Environment data storage
 
@@ -66,7 +78,7 @@ class EnvironmentSchemaValues(db.Model):
                                primary_key=True)
     schema_id = db.Column(pk_type, db.ForeignKey(Environment.id),
                           primary_key=True)
-    values = db.Column(db.Text)
+    values = db.Column(Json)
 
     __table_args__ = (
         db.PrimaryKeyConstraint(environment_id, schema_id),
