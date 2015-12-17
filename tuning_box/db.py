@@ -59,16 +59,3 @@ _environment_components = db.Table(
 class Environment(db.Model):
     id = pk()
     components = db.relationship(Component, secondary=_environment_components)
-
-
-class TemplateInstance(db.Model):
-    id = pk()
-    template_id = db.Column(pk_type, db.ForeignKey(Template.id))
-    environment_id = db.Column(pk_type, db.ForeignKey(Environment.id))
-    content = db.Column(db.Text)
-
-
-class NamespaceInstance(db.Model):
-    id = pk()
-    namespace_id = db.Column(pk_type, db.ForeignKey(Namespace.id))
-    environment_id = db.Column(pk_type, db.ForeignKey(Environment.id))
