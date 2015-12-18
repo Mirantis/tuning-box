@@ -111,6 +111,7 @@ class Component(flask_restful.Resource):
 environment_fields = {
     'id': fields.Integer,
     'components': fields.List(fields.Integer(attribute='id')),
+    'hierarchy_levels': fields.List(fields.String(attribute='name')),
 }
 
 
@@ -127,7 +128,15 @@ class Environment(flask_restful.Resource):
     def post(self):
         component_ids = flask.request.json['components']
         components = [db.Component.query.get_or_404(i) for i in component_ids]
-        environment = db.Environment(components=components)
+
+        hierarchy_levels = []
+        level = None
+        for name in flask.request.json['hierarchy_levels']:
+            level = db.EnvironmentHierarchyLevel(name=name, parent=level)
+            hierarchy_levels.append(level)
+
+        environment = db.Environment(components=components,
+                                     hierarchy_levels=hierarchy_levels)
         db.db.session.add(environment)
         db.db.session.commit()
         return environment, 201

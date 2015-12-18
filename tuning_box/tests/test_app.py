@@ -68,6 +68,12 @@ class TestApp(base.TestCase):
             )
             db.db.session.add(component)
             environment = db.Environment(id=9, components=[component])
+            hierarchy_levels = [
+                db.EnvironmentHierarchyLevel(name="lvl1"),
+                db.EnvironmentHierarchyLevel(name="lvl2"),
+            ]
+            hierarchy_levels[1].parent = hierarchy_levels[0]
+            environment.hierarchy_levels = hierarchy_levels
             db.db.session.add(environment)
             db.db.session.commit()
 
@@ -200,13 +206,15 @@ class TestApp(base.TestCase):
         self._fixture()
         res = self.client.get('/environments')
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, [{'id': 9, 'components': [7]}])
+        self.assertEqual(res.json, [{'id': 9, 'components': [7],
+                                     'hierarchy_levels': ['lvl1', 'lvl2']}])
 
     def test_get_one_environment(self):
         self._fixture()
         res = self.client.get('/environments/9')
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json, {'id': 9, 'components': [7]})
+        self.assertEqual(res.json, {'id': 9, 'components': [7],
+                                    'hierarchy_levels': ['lvl1', 'lvl2']})
 
     def test_get_one_environment_404(self):
         res = self.client.get('/environments/9')
@@ -214,13 +222,16 @@ class TestApp(base.TestCase):
 
     def test_post_environment(self):
         self._fixture()
-        res = self.client.post('/environments', data={'components': [7]})
+        json = {'components': [7], 'hierarchy_levels': ['lvla', 'lvlb']}
+        res = self.client.post('/environments', data=json)
         self.assertEqual(res.status_code, 201)
-        self.assertEqual(res.json, {'id': 10, 'components': [7]})
+        json['id'] = 10
+        self.assertEqual(res.json, json)
 
     def test_post_environment_404(self):
         self._fixture()
-        res = self.client.post('/environments', data={'components': [8]})
+        json = {'components': [8], 'hierarchy_levels': ['lvla', 'lvlb']}
+        res = self.client.post('/environments', data=json)
         self.assertEqual(res.status_code, 404)
 
     def test_delete_environment(self):

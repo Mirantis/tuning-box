@@ -77,6 +77,23 @@ class Environment(db.Model):
     components = db.relationship(Component, secondary=_environment_components)
 
 
+class EnvironmentHierarchyLevel(db.Model):
+    id = pk()
+    environment_id = fk(Environment)
+    environment = db.relationship(Environment, backref='hierarchy_levels')
+    name = db.Column(db.String(128))
+    parent_id = db.Column(pk_type,
+                          db.ForeignKey('environment_hierarchy_level.id'))
+    parent = db.relationship('EnvironmentHierarchyLevel',
+                             backref=db.backref('child', uselist=False),
+                             remote_side=[id])
+
+    __table_args__ = (
+        db.UniqueConstraint(environment_id, name),
+        db.UniqueConstraint(environment_id, parent_id),
+    )
+
+
 class EnvironmentSchemaValues(db.Model):
     environment_id = fk(Environment, primary_key=True)
     schema_id = fk(Schema, primary_key=True)
