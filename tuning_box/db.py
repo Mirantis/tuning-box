@@ -76,7 +76,7 @@ class Environment(db.Model):
 class EnvironmentSchemaValues(db.Model):
     environment_id = db.Column(pk_type, db.ForeignKey(Environment.id),
                                primary_key=True)
-    schema_id = db.Column(pk_type, db.ForeignKey(Environment.id),
+    schema_id = db.Column(pk_type, db.ForeignKey(Schema.id),
                           primary_key=True)
     values = db.Column(Json)
 
