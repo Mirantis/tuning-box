@@ -21,6 +21,10 @@ pk_type = db.Integer
 pk = functools.partial(db.Column, pk_type, primary_key=True)
 
 
+def fk(cls, **kwargs):
+    return db.Column(pk_type, db.ForeignKey(cls.id), **kwargs)
+
+
 class Json(types.TypeDecorator):
     impl = db.Text
 
@@ -48,15 +52,15 @@ class Component(db.Model):
 class Schema(db.Model):
     id = pk()
     name = db.Column(db.String(128))
-    component_id = db.Column(pk_type, db.ForeignKey(Component.id))
-    namespace_id = db.Column(pk_type, db.ForeignKey(Namespace.id))
+    component_id = fk(Component)
+    namespace_id = fk(Namespace)
     content = db.Column(Json)
 
 
 class Template(db.Model):
     id = pk()
     name = db.Column(db.String(128))
-    component_id = db.Column(pk_type, db.ForeignKey(Component.id))
+    component_id = fk(Component)
     content = db.Column(Json)
 
 # Environment data storage
@@ -74,10 +78,8 @@ class Environment(db.Model):
 
 
 class EnvironmentSchemaValues(db.Model):
-    environment_id = db.Column(pk_type, db.ForeignKey(Environment.id),
-                               primary_key=True)
-    schema_id = db.Column(pk_type, db.ForeignKey(Schema.id),
-                          primary_key=True)
+    environment_id = fk(Environment, primary_key=True)
+    schema_id = fk(Schema, primary_key=True)
     values = db.Column(Json)
 
     __table_args__ = (
