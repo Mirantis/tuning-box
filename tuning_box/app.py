@@ -10,9 +10,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import itertools
+
 import flask
 import flask_restful
 from flask_restful import fields
+from werkzeug import routing
+from werkzeug import urls
 
 from tuning_box import db
 
@@ -146,6 +150,32 @@ class Environment(flask_restful.Resource):
         db.db.session.delete(environment)
         db.db.session.commit()
         return None, 204
+
+
+class LevelsConverter(routing.BaseConverter):
+    """Converter that maps nested levels to list of tuples.
+
+    For example, "level1/value1/level2/value2/" is mapped to
+    [("level1", "value1"), ("level2", "value2")].
+
+    Note that since it can be empty it includes following "/":
+
+        Rule('/smth/<levels:levels>values')
+
+    will parse "/smth/values" and "/smth/level1/value1/values".
+    """
+
+    regex = "([^/]+/[^/]+/)*"
+
+    def to_python(self, value):
+        spl = value.split('/')
+        return list(zip(spl[::2], spl[1::2]))
+
+    def to_url(self, value):
+        parts = itertools.chain.from_iterable(value)
+        quoted_parts = (urls.url_quote(p, charset=self.map.charset, safe='')
+                        for p in parts)
+        return ''.join(p + '/' for p in quoted_parts)
 
 
 @api.resource(
