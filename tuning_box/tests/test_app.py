@@ -259,8 +259,8 @@ class TestApp(base.TestCase):
                 environment_id=9, schema_id=5).one_or_none()
             self.assertIsNotNone(esv)
             self.assertEqual(esv.values, {'k': 'v'})
-            self.assertIsNone(esv.level_value.level_id)
-            self.assertIsNone(esv.level_value.parent_id)
+            self.assertIsNone(esv.level_value.level)
+            self.assertIsNone(esv.level_value.parent)
             self.assertIsNone(esv.level_value.value)
 
     def test_put_esv_deep(self):
@@ -283,8 +283,8 @@ class TestApp(base.TestCase):
             self.assertEqual(level_value.level.name, 'lvl1')
             self.assertEqual(level_value.value, 'val1')
             level_value = level_value.parent
-            self.assertIsNone(level_value.level_id)
-            self.assertIsNone(level_value.parent_id)
+            self.assertIsNone(level_value.level)
+            self.assertIsNone(level_value.parent)
             self.assertIsNone(level_value.value)
 
     def test_put_esv_bad_level(self):

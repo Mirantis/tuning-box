@@ -108,7 +108,9 @@ class EnvironmentHierarchyLevelValue(db.Model):
 class EnvironmentSchemaValues(db.Model):
     id = pk()
     environment_id = fk(Environment)
+    environment = db.relationship(Environment)
     schema_id = fk(Schema)
+    schema = db.relationship(Schema)
     level_value_id = fk(EnvironmentHierarchyLevelValue)
     level_value = db.relationship('EnvironmentHierarchyLevelValue')
     values = db.Column(Json)

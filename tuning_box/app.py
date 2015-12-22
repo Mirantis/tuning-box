@@ -184,8 +184,11 @@ class LevelsConverter(routing.BaseConverter):
     '/schema/<int:schema_id>/<levels:levels>values')
 class EnvironmentSchemaValues(flask_restful.Resource):
     def put(self, environment_id, schema_id, levels):
+        environment = db.Environment.query.get_or_404(environment_id)
+        schema = db.Schema.query.get_or_404(schema_id)
+
         env_levels = [db.EnvironmentHierarchyLevel.query.filter_by(
-            environment_id=environment_id, parent_id=None).one()]
+            environment=environment, parent=None).one()]
         while env_levels[-1].child:
             env_levels.append(env_levels[-1].child)
 
@@ -193,19 +196,16 @@ class EnvironmentSchemaValues(flask_restful.Resource):
             [(None, (None, None))],  # root level
             zip(env_levels, levels),
         )
-        parent_level_value_id = None
+        parent_level_value = None
         for env_level, (level_name, level_value) in level_pairs:
             if env_level:
-                level_id = env_level.id
                 if env_level.name != level_name:
                     raise exceptions.BadRequest(
                         "Unexpected level name '%s'. Expected '%s'." % (
                             level_name, env_level.name))
-            else:
-                level_id = None
             level_value_attrs = {
-                'level_id': level_id,
-                'parent_id': parent_level_value_id,
+                'level': env_level,
+                'parent': parent_level_value,
                 'value': level_value,
             }
             level_value_db = db.EnvironmentHierarchyLevelValue.query.filter_by(
@@ -214,13 +214,12 @@ class EnvironmentSchemaValues(flask_restful.Resource):
                 level_value_db = db.EnvironmentHierarchyLevelValue(
                     **level_value_attrs)
                 db.db.session.add(level_value_db)
-                db.db.session.flush()  # to get level_value_db.id
-            parent_level_value_id = level_value_db.id
+            parent_level_value = level_value_db
 
         esv_attrs = {
-            'environment_id': environment_id,
-            'schema_id': schema_id,
-            'level_value_id': level_value_db.id,
+            'environment': environment,
+            'schema': schema,
+            'level_value': level_value_db,
         }
         esv = db.EnvironmentSchemaValues.query.filter_by(
             **esv_attrs).one_or_none()
