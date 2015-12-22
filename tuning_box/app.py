@@ -15,6 +15,7 @@ import itertools
 import flask
 import flask_restful
 from flask_restful import fields
+from werkzeug import exceptions
 from werkzeug import routing
 from werkzeug import urls
 
@@ -179,13 +180,52 @@ class LevelsConverter(routing.BaseConverter):
 
 
 @api.resource(
-    '/environments/<int:environment_id>/schema/<int:schema_id>/values')
+    '/environments/<int:environment_id>' +
+    '/schema/<int:schema_id>/<levels:levels>values')
 class EnvironmentSchemaValues(flask_restful.Resource):
-    def put(self, environment_id, schema_id):
-        esv = db.EnvironmentSchemaValues.query.get((environment_id, schema_id))
+    def put(self, environment_id, schema_id, levels):
+        env_levels = [db.EnvironmentHierarchyLevel.query.filter_by(
+            environment_id=environment_id, parent_id=None).one()]
+        while env_levels[-1].child:
+            env_levels.append(env_levels[-1].child)
+
+        level_pairs = itertools.chain(
+            [(None, (None, None))],  # root level
+            zip(env_levels, levels),
+        )
+        parent_level_value_id = None
+        for env_level, (level_name, level_value) in level_pairs:
+            if env_level:
+                level_id = env_level.id
+                if env_level.name != level_name:
+                    raise exceptions.BadRequest(
+                        "Unexpected level name '%s'. Expected '%s'." % (
+                            level_name, env_level.name))
+            else:
+                level_id = None
+            level_value_attrs = {
+                'level_id': level_id,
+                'parent_id': parent_level_value_id,
+                'value': level_value,
+            }
+            level_value_db = db.EnvironmentHierarchyLevelValue.query.filter_by(
+                **level_value_attrs).one_or_none()
+            if not level_value_db:
+                level_value_db = db.EnvironmentHierarchyLevelValue(
+                    **level_value_attrs)
+                db.db.session.add(level_value_db)
+                db.db.session.flush()  # to get level_value_db.id
+            parent_level_value_id = level_value_db.id
+
+        esv_attrs = {
+            'environment_id': environment_id,
+            'schema_id': schema_id,
+            'level_value_id': level_value_db.id,
+        }
+        esv = db.EnvironmentSchemaValues.query.filter_by(
+            **esv_attrs).one_or_none()
         if esv is None:
-            esv = db.EnvironmentSchemaValues(
-                environment_id=environment_id, schema_id=schema_id)
+            esv = db.EnvironmentSchemaValues(**esv_attrs)
             db.db.session.add(esv)
         esv.values = flask.request.json
         db.db.session.commit()
@@ -194,6 +234,7 @@ class EnvironmentSchemaValues(flask_restful.Resource):
 
 def build_app():
     app = flask.Flask(__name__)
+    app.url_map.converters['levels'] = LevelsConverter
     api.init_app(app)  # init_app spoils Api object if app is a blueprint
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  # silence warning
     db.db.init_app(app)

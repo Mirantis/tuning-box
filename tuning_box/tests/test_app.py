@@ -248,16 +248,54 @@ class TestApp(base.TestCase):
         res = self.client.delete('/environments/9')
         self.assertEqual(res.status_code, 404)
 
-    def test_put_esv(self):
+    def test_put_esv_root(self):
         self._fixture()
         res = self.client.put('/environments/9/schema/5/values',
                               data={'k': 'v'})
         self.assertEqual(res.status_code, 204)
         self.assertEqual(res.data, b'')
         with self.app.app_context():
-            esv = db.EnvironmentSchemaValues.query.get((9, 5))
+            esv = db.EnvironmentSchemaValues.query.filter_by(
+                environment_id=9, schema_id=5).one_or_none()
             self.assertIsNotNone(esv)
             self.assertEqual(esv.values, {'k': 'v'})
+            self.assertIsNone(esv.level_value.level_id)
+            self.assertIsNone(esv.level_value.parent_id)
+            self.assertIsNone(esv.level_value.value)
+
+    def test_put_esv_deep(self):
+        self._fixture()
+        res = self.client.put(
+            '/environments/9/schema/5/lvl1/val1/lvl2/val2/values',
+            data={'k': 'v'},
+        )
+        self.assertEqual(res.status_code, 204)
+        self.assertEqual(res.data, b'')
+        with self.app.app_context():
+            esv = db.EnvironmentSchemaValues.query.filter_by(
+                environment_id=9, schema_id=5).one_or_none()
+            self.assertIsNotNone(esv)
+            self.assertEqual(esv.values, {'k': 'v'})
+            level_value = esv.level_value
+            self.assertEqual(level_value.level.name, 'lvl2')
+            self.assertEqual(level_value.value, 'val2')
+            level_value = level_value.parent
+            self.assertEqual(level_value.level.name, 'lvl1')
+            self.assertEqual(level_value.value, 'val1')
+            level_value = level_value.parent
+            self.assertIsNone(level_value.level_id)
+            self.assertIsNone(level_value.parent_id)
+            self.assertIsNone(level_value.value)
+
+    def test_put_esv_bad_level(self):
+        self._fixture()
+        res = self.client.put('/environments/9/schema/5/lvlx/1/values',
+                              data={'k': 'v'})
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(
+            res.json,
+            {"message": "Unexpected level name 'lvlx'. Expected 'lvl1'."},
+        )
 
 
 class TestLevelsConverter(base.TestCase):

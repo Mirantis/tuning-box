@@ -94,11 +94,25 @@ class EnvironmentHierarchyLevel(db.Model):
     )
 
 
+class EnvironmentHierarchyLevelValue(db.Model):
+    id = pk()
+    level_id = fk(EnvironmentHierarchyLevel)
+    level = db.relationship(EnvironmentHierarchyLevel)
+    parent_id = db.Column(
+        pk_type, db.ForeignKey('environment_hierarchy_level_value.id'))
+    parent = db.relationship('EnvironmentHierarchyLevelValue',
+                             remote_side=[id])
+    value = db.Column(db.String(128))
+
+
 class EnvironmentSchemaValues(db.Model):
-    environment_id = fk(Environment, primary_key=True)
-    schema_id = fk(Schema, primary_key=True)
+    id = pk()
+    environment_id = fk(Environment)
+    schema_id = fk(Schema)
+    level_value_id = fk(EnvironmentHierarchyLevelValue)
+    level_value = db.relationship('EnvironmentHierarchyLevelValue')
     values = db.Column(Json)
 
     __table_args__ = (
-        db.PrimaryKeyConstraint(environment_id, schema_id),
+        db.UniqueConstraint(environment_id, schema_id, level_value_id),
     )
