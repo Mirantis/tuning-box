@@ -187,10 +187,8 @@ class EnvironmentSchemaValues(flask_restful.Resource):
         environment = db.Environment.query.get_or_404(environment_id)
         schema = db.Schema.query.get_or_404(schema_id)
 
-        env_levels = [db.EnvironmentHierarchyLevel.query.filter_by(
-            environment=environment, parent=None).one()]
-        while env_levels[-1].child:
-            env_levels.append(env_levels[-1].child)
+        env_levels = db.EnvironmentHierarchyLevel.get_for_environment(
+            environment)
 
         level_pairs = itertools.chain(
             [(None, (None, None))],  # root level

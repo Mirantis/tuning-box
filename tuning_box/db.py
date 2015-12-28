@@ -93,6 +93,17 @@ class EnvironmentHierarchyLevel(db.Model):
         db.UniqueConstraint(environment_id, parent_id),
     )
 
+    @classmethod
+    def get_for_environment(cls, environment):
+        query = cls.query.filter_by(environment=environment, parent=None)
+        root_level = query.one_or_none()
+        if not root_level:
+            return []
+        env_levels = [root_level]
+        while env_levels[-1].child:
+            env_levels.append(env_levels[-1].child)
+        return env_levels
+
 
 class EnvironmentHierarchyLevelValue(db.Model):
     id = pk()
