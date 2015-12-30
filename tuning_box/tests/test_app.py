@@ -45,6 +45,7 @@ class TestApp(base.TestCase):
         self.app = app.build_app()
         self.app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///'
         with self.app.app_context():
+            db.fix_sqlite()
             db.db.create_all()
         self.client = Client(self.app)
 

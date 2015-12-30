@@ -14,6 +14,7 @@ import functools
 import json
 
 import flask_sqlalchemy
+import sqlalchemy.event
 from sqlalchemy import types
 
 db = flask_sqlalchemy.SQLAlchemy()
@@ -129,3 +130,15 @@ class EnvironmentSchemaValues(db.Model):
     __table_args__ = (
         db.UniqueConstraint(environment_id, schema_id, level_value_id),
     )
+
+
+def fix_sqlite():
+    engine = db.engine
+
+    @sqlalchemy.event.listens_for(engine, "connect")
+    def _connect(dbapi_connection, connection_record):
+        dbapi_connection.isolation_level = None
+
+    @sqlalchemy.event.listens_for(engine, "begin")
+    def _begin(conn):
+        conn.execute("BEGIN")

@@ -24,6 +24,7 @@ class _DBTestCase(base.TestCase):
         self.app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  # no warning
         db.db.init_app(self.app)
         with self.app.app_context():
+            db.fix_sqlite()
             db.db.create_all()
 
 
