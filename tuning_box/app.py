@@ -201,29 +201,20 @@ class EnvironmentSchemaValues(flask_restful.Resource):
                     raise exceptions.BadRequest(
                         "Unexpected level name '%s'. Expected '%s'." % (
                             level_name, env_level.name))
-            level_value_attrs = {
-                'level': env_level,
-                'parent': parent_level_value,
-                'value': level_value,
-            }
-            level_value_db = db.EnvironmentHierarchyLevelValue.query.filter_by(
-                **level_value_attrs).one_or_none()
-            if not level_value_db:
-                level_value_db = db.EnvironmentHierarchyLevelValue(
-                    **level_value_attrs)
-                db.db.session.add(level_value_db)
+            level_value_db = db.get_or_create(
+                db.EnvironmentHierarchyLevelValue,
+                level=env_level,
+                parent=parent_level_value,
+                value=level_value,
+            )
             parent_level_value = level_value_db
 
-        esv_attrs = {
-            'environment': environment,
-            'schema': schema,
-            'level_value': level_value_db,
-        }
-        esv = db.EnvironmentSchemaValues.query.filter_by(
-            **esv_attrs).one_or_none()
-        if esv is None:
-            esv = db.EnvironmentSchemaValues(**esv_attrs)
-            db.db.session.add(esv)
+        esv = db.get_or_create(
+            db.EnvironmentSchemaValues,
+            environment=environment,
+            schema=schema,
+            level_value=level_value_db,
+        )
         esv.values = flask.request.json
         db.db.session.commit()
         return None, 204
