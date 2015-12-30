@@ -32,6 +32,18 @@ class TestDB(_DBTestCase):
     def test_create_all(self):
         pass
 
+    def test_get_or_create_get(self):
+        with self.app.app_context():
+            db.db.session.add(db.Namespace(name="nsname"))
+            res = db.get_or_create(db.Namespace, name="nsname")
+            self.assertEqual(res.name, "nsname")
+
+    def test_get_or_create_create(self):
+        with self.app.app_context():
+            res = db.get_or_create(db.Namespace, name="nsname")
+            self.assertIsNotNone(res.id)
+            self.assertEqual(res.name, "nsname")
+
 
 class TestEnvironmentHierarchyLevel(_DBTestCase):
     def setUp(self):

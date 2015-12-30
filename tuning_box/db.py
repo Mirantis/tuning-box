@@ -132,6 +132,15 @@ class EnvironmentSchemaValues(db.Model):
     )
 
 
+def get_or_create(cls, **attrs):
+    with db.session.begin(nested=True):
+        item = cls.query.filter_by(**attrs).one_or_none()
+        if not item:
+            item = cls(**attrs)
+            db.session.add(item)
+    return item
+
+
 def fix_sqlite():
     engine = db.engine
 
