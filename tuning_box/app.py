@@ -179,6 +179,29 @@ class LevelsConverter(routing.BaseConverter):
         return ''.join(p + '/' for p in quoted_parts)
 
 
+def get_environment_level_value(environment, levels):
+    env_levels = db.EnvironmentHierarchyLevel.get_for_environment(environment)
+    level_pairs = itertools.chain(
+        [(None, (None, None))],  # root level
+        zip(env_levels, levels),
+    )
+    parent_level_value = None
+    for env_level, (level_name, level_value) in level_pairs:
+        if env_level:
+            if env_level.name != level_name:
+                raise exceptions.BadRequest(
+                    "Unexpected level name '%s'. Expected '%s'." % (
+                        level_name, env_level.name))
+        level_value_db = db.get_or_create(
+            db.EnvironmentHierarchyLevelValue,
+            level=env_level,
+            parent=parent_level_value,
+            value=level_value,
+        )
+        parent_level_value = level_value_db
+    return level_value_db
+
+
 @api.resource(
     '/environments/<int:environment_id>' +
     '/schema/<int:schema_id>/<levels:levels>values')
@@ -186,34 +209,12 @@ class EnvironmentSchemaValues(flask_restful.Resource):
     def put(self, environment_id, schema_id, levels):
         environment = db.Environment.query.get_or_404(environment_id)
         schema = db.Schema.query.get_or_404(schema_id)
-
-        env_levels = db.EnvironmentHierarchyLevel.get_for_environment(
-            environment)
-
-        level_pairs = itertools.chain(
-            [(None, (None, None))],  # root level
-            zip(env_levels, levels),
-        )
-        parent_level_value = None
-        for env_level, (level_name, level_value) in level_pairs:
-            if env_level:
-                if env_level.name != level_name:
-                    raise exceptions.BadRequest(
-                        "Unexpected level name '%s'. Expected '%s'." % (
-                            level_name, env_level.name))
-            level_value_db = db.get_or_create(
-                db.EnvironmentHierarchyLevelValue,
-                level=env_level,
-                parent=parent_level_value,
-                value=level_value,
-            )
-            parent_level_value = level_value_db
-
+        level_value = get_environment_level_value(environment, levels)
         esv = db.get_or_create(
             db.EnvironmentSchemaValues,
             environment=environment,
             schema=schema,
-            level_value=level_value_db,
+            level_value=level_value,
         )
         esv.values = flask.request.json
         db.db.session.commit()

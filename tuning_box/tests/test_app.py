@@ -13,6 +13,7 @@
 import json
 
 from flask import testing
+from werkzeug import exceptions
 from werkzeug import routing
 from werkzeug import wrappers
 
@@ -248,6 +249,49 @@ class TestApp(base.TestCase):
     def test_delete_environment_404(self):
         res = self.client.delete('/environments/9')
         self.assertEqual(res.status_code, 404)
+
+    def test_get_environment_level_value_root(self):
+        self._fixture()
+        with self.app.app_context():
+            level_value = app.get_environment_level_value(
+                db.Environment(id=9),
+                [],
+            )
+            self.assertIsNone(level_value.level)
+            self.assertIsNone(level_value.parent)
+            self.assertIsNone(level_value.value)
+
+    def test_get_environment_level_value_deep(self):
+        self._fixture()
+        with self.app.app_context():
+            level_value = app.get_environment_level_value(
+                db.Environment(id=9),
+                [('lvl1', 'val1'), ('lvl2', 'val2')],
+            )
+            self.assertIsNotNone(level_value)
+            self.assertEqual(level_value.level.name, 'lvl2')
+            self.assertEqual(level_value.value, 'val2')
+            level_value = level_value.parent
+            self.assertEqual(level_value.level.name, 'lvl1')
+            self.assertEqual(level_value.value, 'val1')
+            level_value = level_value.parent
+            self.assertIsNone(level_value.level)
+            self.assertIsNone(level_value.parent)
+            self.assertIsNone(level_value.value)
+
+    def test_get_environment_level_value_bad_level(self):
+        self._fixture()
+        with self.app.app_context():
+            exc = self.assertRaises(
+                exceptions.BadRequest,
+                app.get_environment_level_value,
+                db.Environment(id=9),
+                [('lvlx', 'val1')],
+            )
+            self.assertEqual(
+                exc.description,
+                "Unexpected level name 'lvlx'. Expected 'lvl1'.",
+            )
 
     def test_put_esv_root(self):
         self._fixture()
