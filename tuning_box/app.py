@@ -179,7 +179,7 @@ class LevelsConverter(routing.BaseConverter):
         return ''.join(p + '/' for p in quoted_parts)
 
 
-def get_environment_level_value(environment, levels):
+def iter_environment_level_values(environment, levels):
     env_levels = db.EnvironmentHierarchyLevel.get_for_environment(environment)
     level_pairs = itertools.chain(
         [(None, (None, None))],  # root level
@@ -198,8 +198,14 @@ def get_environment_level_value(environment, levels):
             parent=parent_level_value,
             value=level_value,
         )
+        yield level_value_db
         parent_level_value = level_value_db
-    return level_value_db
+
+
+def get_environment_level_value(environment, levels):
+    for level_value in iter_environment_level_values(environment, levels):
+        pass
+    return level_value
 
 
 @api.resource(
