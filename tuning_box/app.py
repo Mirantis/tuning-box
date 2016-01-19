@@ -62,14 +62,14 @@ schema_fields = {
     'name': fields.String,
     'component_id': fields.Integer,
     'namespace_id': fields.Integer,
-    'content': fields.String,
+    'content': fields.Raw,
 }
 
 template_fields = {
     'id': fields.Integer,
     'name': fields.String,
     'component_id': fields.Integer,
-    'content': fields.String,
+    'content': fields.Raw,
 }
 
 component_fields = {

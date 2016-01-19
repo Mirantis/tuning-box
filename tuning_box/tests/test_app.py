@@ -60,13 +60,13 @@ class TestApp(base.TestCase):
                 schemas=[db.Schema(
                     id=5,
                     name='schema1',
-                    namespace_id=namespace.id,
-                    content='schema1_content',
+                    namespace=namespace,
+                    content={'key': 'description'},
                 )],
                 templates=[db.Template(
                     id=5,
                     name='template1',
-                    content='template1_content',
+                    content={'my_key': 'nsname.key'},
                 )],
             )
             db.db.session.add(component)
@@ -142,13 +142,13 @@ class TestApp(base.TestCase):
                 'name': 'schema1',
                 'component_id': 7,
                 'namespace_id': 3,
-                'content': 'schema1_content',
+                'content': {'key': 'description'},
             }],
             'templates': [{
                 'id': 5,
                 'name': 'template1',
                 'component_id': 7,
-                'content': 'template1_content',
+                'content': {'my_key': 'nsname.key'},
             }],
         }
 
