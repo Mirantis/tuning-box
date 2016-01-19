@@ -342,6 +342,64 @@ class TestApp(base.TestCase):
             {"message": "Unexpected level name 'lvlx'. Expected 'lvl1'."},
         )
 
+    def test_get_etv(self):
+        self._fixture()
+        res = self.client.put('/environments/9/schema/5/values',
+                              data={'key': 'value'})
+        self.assertEqual(res.status_code, 204)
+        self.assertEqual(res.data, b'')
+        res = self.client.get('/environments/9/templates/5/lvl1/1/values')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json, {'my_key': 'value'})
+
+    def test_get_etv_level_override(self):
+        self._fixture()
+        res = self.client.put('/environments/9/schema/5/values',
+                              data={'key': 'value'})
+        res = self.client.put('/environments/9/schema/5/lvl1/1/values',
+                              data={'key': 'value1'})
+        res = self.client.put('/environments/9/schema/5/lvl1/2/values',
+                              data={'key': 'value2'})
+        self.assertEqual(res.status_code, 204)
+        self.assertEqual(res.data, b'')
+        res = self.client.get('/environments/9/templates/5/lvl1/1/values')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json, {'my_key': 'value1'})
+
+    def test_get_etv_two_namespaces(self):
+        self._fixture()
+        with self.app.app_context():
+            schema = db.Schema(
+                namespace=db.Namespace(name='other_ns'),
+                content={'key1': 'description'},
+            )
+            template = db.Template(
+                content={'mkey1': 'nsname.key', 'mkey2': 'other_ns.key1'},
+            )
+            component = db.Component(
+                name='testcomp',
+                schemas=[schema],
+                templates=[template],
+            )
+            db.db.session.add(component)
+            db.db.session.commit()
+            db.db.session.refresh(schema)
+            db.db.session.refresh(template)
+
+        res = self.client.put('/environments/9/schema/5/values',
+                              data={'key': 'value'})
+        res = self.client.put(
+            '/environments/9/schema/{}/lvl1/1/values'.format(schema.id),
+            data={'key1': 'value1'},
+        )
+        self.assertEqual(res.status_code, 204)
+        self.assertEqual(res.data, b'')
+        res = self.client.get(
+            '/environments/9/templates/{}/lvl1/1/values'.format(template.id),
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json, {'mkey1': 'value', 'mkey2': 'value1'})
+
 
 class TestLevelsConverter(base.TestCase):
     def setUp(self):

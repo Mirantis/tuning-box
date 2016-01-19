@@ -10,6 +10,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import collections
+import functools
 import itertools
 
 import flask
@@ -225,6 +227,47 @@ class EnvironmentSchemaValues(flask_restful.Resource):
         esv.values = flask.request.json
         db.db.session.commit()
         return None, 204
+
+
+@api.resource(
+    '/environments/<int:environment_id>' +
+    '/templates/<int:template_id>/<levels:levels>values')
+class EnvironmentTemplateValues(flask_restful.Resource):
+    def get(self, environment_id, template_id, levels):
+        environment = db.Environment.query.get_or_404(environment_id)
+        template = db.Template.query.get_or_404(template_id)
+        level_values = list(iter_environment_level_values(environment, levels))
+        query = (
+            db.db.session.query(db.EnvironmentSchemaValues, db.Namespace)
+            .join(db.Schema)
+            .join(db.Namespace)
+            .filter(db.EnvironmentSchemaValues.level_value_id.in_(
+                    [lv.id for lv in level_values]))
+        )
+        namespaces_schemas = query.all()
+        namespaces_levels = collections.defaultdict(
+            functools.partial(collections.defaultdict, dict))
+        # Merge data on every level
+        for esv, namespace in namespaces_schemas:
+            nl = namespaces_levels[namespace.name][esv.level_value]
+            nl.update(esv.values)
+        # Merge data across levels
+        namespaces_data = {}
+        for ns_name, ns_levels in namespaces_levels.items():
+            ns_data = {}
+            for level_value in level_values:
+                try:
+                    values = ns_levels[level_value]
+                except KeyError:
+                    pass
+                else:
+                    ns_data.update(values)
+            namespaces_data[ns_name] = ns_data
+        result = {}
+        for key, value_tmpl in template.content.items():
+            ns_name, ns_key = value_tmpl.split('.')
+            result[key] = namespaces_data[ns_name][ns_key]
+        return result
 
 
 def build_app():
