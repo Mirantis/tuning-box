@@ -45,6 +45,10 @@ class TestDB(_DBTestCase):
             self.assertEqual(res.name, "nsname")
 
 
+class TestDBPrefixed(base.PrefixedTestCaseMixin, TestDB):
+    pass
+
+
 class TestEnvironmentHierarchyLevel(_DBTestCase):
     def setUp(self):
         super(TestEnvironmentHierarchyLevel, self).setUp()
@@ -84,3 +88,8 @@ class TestEnvironmentHierarchyLevel(_DBTestCase):
 
     def test_get_for_environment_three(self):
         self._test_get_for_environment(3, ['lvl0', 'lvl1', 'lvl2'])
+
+
+class TestEnvironmentHierarchyLevelPrefixed(base.PrefixedTestCaseMixin,
+                                            TestEnvironmentHierarchyLevel):
+    pass

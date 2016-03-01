@@ -401,6 +401,10 @@ class TestApp(base.TestCase):
         self.assertEqual(res.json, {'mkey1': 'value', 'mkey2': 'value1'})
 
 
+class TestAppPrefixed(base.PrefixedTestCaseMixin, TestApp):
+    pass
+
+
 class TestLevelsConverter(base.TestCase):
     def setUp(self):
         super(TestLevelsConverter, self).setUp()

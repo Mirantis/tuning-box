@@ -176,3 +176,17 @@ def fix_sqlite():
     @sqlalchemy.event.listens_for(engine, "begin")
     def _begin(conn):
         conn.execute("BEGIN")
+
+
+def prefix_tables(prefix):
+    for table in db.get_tables_for_bind():
+        table.name = prefix + table.name
+
+
+def unprefix_tables(prefix):
+    for table in db.get_tables_for_bind():
+        if not table.name.startswith(prefix):
+            raise ValueError("Wrong prefix for table {} - it doesn't start "
+                             "with {}".format(table.name, prefix))
+    for table in db.get_tables_for_bind():
+        table.name = table.name[len(prefix):]

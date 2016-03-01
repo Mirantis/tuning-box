@@ -17,7 +17,16 @@
 
 from oslotest import base
 
+from tuning_box import db
+
 
 class TestCase(base.BaseTestCase):
 
     """Test case base class for all unit tests."""
+
+
+class PrefixedTestCaseMixin(object):
+    def setUp(self):
+        db.prefix_tables('test_prefix_')
+        self.addCleanup(db.unprefix_tables, 'test_prefix_')
+        super(PrefixedTestCaseMixin, self).setUp()
