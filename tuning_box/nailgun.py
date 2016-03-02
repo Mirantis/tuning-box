@@ -12,6 +12,8 @@
 
 from __future__ import absolute_import
 
+import os
+
 from nailgun import extensions
 
 import tuning_box
@@ -21,3 +23,7 @@ class Extension(extensions.BaseExtension):
     name = 'tuning_box'
     version = tuning_box.__version__
     description = 'Plug tuning_box endpoints into Nailgun itself'
+
+    @classmethod
+    def alembic_migrations_path(cls):
+        return os.path.join(os.path.dirname(__file__), 'migrations')
