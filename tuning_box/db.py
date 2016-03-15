@@ -19,6 +19,22 @@ import sqlalchemy.event
 import sqlalchemy.ext.declarative as sa_decl
 from sqlalchemy import types
 
+if not hasattr(flask_sqlalchemy.BaseQuery, 'one_or_none'):
+    # for sqlalchemy < 1.0.9
+    from sqlalchemy.orm import exc as orm_exc
+
+    def one_or_none(self):
+        ret = list(self)
+        l = len(ret)
+        if l == 1:
+            return ret[0]
+        elif l == 0:
+            return None
+        else:
+            raise orm_exc.MultipleResultsFound(
+                "Multiple rows were found for one_or_none()")
+    flask_sqlalchemy.BaseQuery.one_or_none = one_or_none
+
 db = flask_sqlalchemy.SQLAlchemy()
 pk_type = db.Integer
 pk = functools.partial(db.Column, pk_type, primary_key=True)
