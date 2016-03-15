@@ -68,7 +68,7 @@ class App2WebPy(web.application):
 class TB2WebPy(App2WebPy):
     def create_app(self):
         app = tb_app.build_app()
-        tb_db.prefix_tables(Extension.table_prefix())
+        tb_db.prefix_tables(tb_db, Extension.table_prefix())
         tb_db.db.session = nailgun_db.db
         app.config["PROPAGATE_EXCEPTIONS"] = True
         return app

@@ -12,6 +12,7 @@
 
 import functools
 import json
+import re
 
 import flask_sqlalchemy
 import sqlalchemy.event
@@ -27,8 +28,28 @@ def fk(cls, **kwargs):
     return db.Column(pk_type, db.ForeignKey(cls.id), **kwargs)
 
 
+def _tablename(cls_name):
+    def repl(match):
+        res = match.group().lower()
+        if match.start():
+            res = "_" + res
+        return res
+
+    return ModelMixin.table_prefix + re.sub("[A-Z]", repl, cls_name)
+
+
 class ModelMixin(object):
     id = db.Column(pk_type, primary_key=True)
+
+    try:
+        table_prefix = ModelMixin.table_prefix  # keep prefix during reload
+    except NameError:
+        table_prefix = ""  # first import, not reload
+
+
+    @sa_decl.declared_attr
+    def __tablename__(cls):
+        return _tablename(cls.__name__)
 
     def __repr__(self):
         args = []
@@ -59,8 +80,6 @@ class Namespace(ModelMixin, db.Model):
 
 class Component(ModelMixin, db.Model):
     name = db.Column(db.String(128))
-    schemas = db.relationship("Schema", backref="component")
-    templates = db.relationship("Template", backref="component")
 
     __repr_attrs__ = ('id', 'name')
 
@@ -68,6 +87,7 @@ class Component(ModelMixin, db.Model):
 class Schema(ModelMixin, db.Model):
     name = db.Column(db.String(128))
     component_id = fk(Component)
+    component = db.relationship(Component, backref='schemas')
     namespace_id = fk(Namespace)
     namespace = db.relationship(Namespace)
     content = db.Column(Json)
@@ -78,21 +98,23 @@ class Schema(ModelMixin, db.Model):
 class Template(ModelMixin, db.Model):
     name = db.Column(db.String(128))
     component_id = fk(Component)
+    component = db.relationship(Component, backref='templates')
     content = db.Column(Json)
 
     __repr_attrs__ = ('id', 'name', 'component', 'content')
 
 # Environment data storage
 
-_environment_components = db.Table(
-    'environment_components',
-    db.Column('environment_id', pk_type, db.ForeignKey('environment.id')),
-    db.Column('component_id', pk_type, db.ForeignKey('component.id')),
-)
-
 
 class Environment(ModelMixin, db.Model):
-    components = db.relationship(Component, secondary=_environment_components)
+    @sa_decl.declared_attr
+    def components(cls):
+        _environment_components = db.Table(
+            _tablename('environment_components'),
+            db.Column('environment_id', pk_type, db.ForeignKey(cls.id)),
+            db.Column('component_id', pk_type, db.ForeignKey(Component.id)),
+        )
+        return db.relationship(Component, secondary=_environment_components)
 
     __repr_attrs__ = ('id',)
 
@@ -101,8 +123,10 @@ class EnvironmentHierarchyLevel(ModelMixin, db.Model):
     environment_id = fk(Environment)
     environment = db.relationship(Environment, backref='hierarchy_levels')
     name = db.Column(db.String(128))
-    parent_id = db.Column(pk_type,
-                          db.ForeignKey('environment_hierarchy_level.id'))
+
+    @sa_decl.declared_attr
+    def parent_id(cls):
+        return db.Column(pk_type, db.ForeignKey(cls.id))
 
     @sa_decl.declared_attr
     def parent(cls):
@@ -111,8 +135,8 @@ class EnvironmentHierarchyLevel(ModelMixin, db.Model):
                                remote_side=cls.id)
 
     __table_args__ = (
-        db.UniqueConstraint(environment_id, name),
-        db.UniqueConstraint(environment_id, parent_id),
+        db.UniqueConstraint('environment_id', 'name'),
+        db.UniqueConstraint('environment_id', 'parent_id'),
     )
     __repr_attrs__ = ('id', 'environment', 'parent', 'name')
 
@@ -131,9 +155,12 @@ class EnvironmentHierarchyLevel(ModelMixin, db.Model):
 class EnvironmentHierarchyLevelValue(ModelMixin, db.Model):
     level_id = fk(EnvironmentHierarchyLevel)
     level = db.relationship(EnvironmentHierarchyLevel)
-    parent_id = db.Column(
-        pk_type, db.ForeignKey('environment_hierarchy_level_value.id'))
     value = db.Column(db.String(128))
+
+    @sa_decl.declared_attr
+    def parent_id(cls):
+        return db.Column(pk_type, db.ForeignKey(cls.id))
+
 
     @sa_decl.declared_attr
     def parent(cls):
@@ -178,15 +205,11 @@ def fix_sqlite():
         conn.execute("BEGIN")
 
 
-def prefix_tables(prefix):
-    for table in db.get_tables_for_bind():
-        table.name = prefix + table.name
+def prefix_tables(module, prefix):
+    ModelMixin.table_prefix = prefix
+    reload(module)
 
 
-def unprefix_tables(prefix):
-    for table in db.get_tables_for_bind():
-        if not table.name.startswith(prefix):
-            raise ValueError("Wrong prefix for table {} - it doesn't start "
-                             "with {}".format(table.name, prefix))
-    for table in db.get_tables_for_bind():
-        table.name = table.name[len(prefix):]
+def unprefix_tables(module):
+    ModelMixin.table_prefix = ""
+    reload(module)

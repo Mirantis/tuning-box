@@ -27,6 +27,6 @@ class TestCase(base.BaseTestCase):
 
 class PrefixedTestCaseMixin(object):
     def setUp(self):
-        db.prefix_tables('test_prefix_')
-        self.addCleanup(db.unprefix_tables, 'test_prefix_')
+        db.prefix_tables(db, 'test_prefix_')
+        self.addCleanup(db.unprefix_tables, db)
         super(PrefixedTestCaseMixin, self).setUp()
