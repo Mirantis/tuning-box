@@ -62,7 +62,6 @@ class ModelMixin(object):
     except NameError:
         table_prefix = ""  # first import, not reload
 
-
     @sa_decl.declared_attr
     def __tablename__(cls):
         return _tablename(cls.__name__)
@@ -176,7 +175,6 @@ class EnvironmentHierarchyLevelValue(ModelMixin, db.Model):
     @sa_decl.declared_attr
     def parent_id(cls):
         return db.Column(pk_type, db.ForeignKey(cls.id))
-
 
     @sa_decl.declared_attr
     def parent(cls):
