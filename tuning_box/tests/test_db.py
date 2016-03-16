@@ -10,7 +10,22 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
+import tempfile
+
+_fd, _sqlite_db_file_name = tempfile.mkstemp()
+os.close(_fd)
+del _fd
+
+# oslo_db internals refuse to work properly if this is not set
+os.environ["OS_TEST_DBAPI_ADMIN_CONNECTION"] = \
+    "sqlite:///" + _sqlite_db_file_name
+
+from alembic import command as alembic_command
+from alembic import config as alembic_config
 import flask
+from oslo_db.sqlalchemy import test_base
+from oslo_db.sqlalchemy import test_migrations
 
 from tuning_box import db
 from tuning_box.tests import base
@@ -93,3 +108,28 @@ class TestEnvironmentHierarchyLevel(_DBTestCase):
 class TestEnvironmentHierarchyLevelPrefixed(base.PrefixedTestCaseMixin,
                                             TestEnvironmentHierarchyLevel):
     pass
+
+
+class TestMigrationsSync(test_migrations.ModelsMigrationsSync,
+                         base.TestCase,
+                         test_base.DbTestCase):
+    def setUp(self):
+        super(TestMigrationsSync, self).setUp()
+        self.addCleanup(os.remove, _sqlite_db_file_name)
+
+    def get_metadata(self):
+        return db.db.metadata
+
+    def get_engine(self):
+        return self.engine
+
+    def get_alembic_config(self, engine):
+        config = alembic_config.Config()
+        config.set_main_option('sqlalchemy.url', str(engine.url))
+        config.set_main_option('script_location', 'tuning_box/migrations')
+        config.set_main_option('version_table', 'alembic_version')
+        return config
+
+    def db_sync(self, engine):
+        config = self.get_alembic_config(engine)
+        alembic_command.upgrade(config, 'head')

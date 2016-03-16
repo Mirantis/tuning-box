@@ -20,7 +20,8 @@ from tuning_box import db
 config = context.config
 if config.get_main_option('table_prefix') is None:
     config.set_main_option('table_prefix', '')
-logging.config.fileConfig(config.config_file_name)
+if config.config_file_name:
+    logging.config.fileConfig(config.config_file_name)
 target_metadata = db.db.metadata
 
 
