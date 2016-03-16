@@ -19,6 +19,11 @@ import sqlalchemy.event
 import sqlalchemy.ext.declarative as sa_decl
 from sqlalchemy import types
 
+try:
+    from importlib import reload
+except ImportError:
+    pass  # in 2.x reload is builtin
+
 if not hasattr(flask_sqlalchemy.BaseQuery, 'one_or_none'):
     # for sqlalchemy < 1.0.9
     from sqlalchemy.orm import exc as orm_exc
