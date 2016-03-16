@@ -133,3 +133,23 @@ class TestMigrationsSync(test_migrations.ModelsMigrationsSync,
     def db_sync(self, engine):
         config = self.get_alembic_config(engine)
         alembic_command.upgrade(config, 'head')
+
+
+class TestMigrationsSyncPrefixed(base.PrefixedTestCaseMixin,
+                                 TestMigrationsSync):
+    def include_object(self, object_, name, type_, reflected, compare_to):
+        # ModelsMigrationsSync doesn't pass any config to MigrationContext
+        # so alembic assumes 'alembic_version' table by default, not our
+        # prefixed table
+        if type_ == 'table' and name == 'test_prefix_alembic_version':
+            return False
+
+        return super(TestMigrationsSyncPrefixed, self).include_object(
+            object_, name, type_, reflected, compare_to)
+
+    def get_alembic_config(self, engine):
+        config = super(TestMigrationsSyncPrefixed, self).get_alembic_config(
+            engine)
+        config.set_main_option('version_table', 'test_prefix_alembic_version')
+        config.set_main_option('table_prefix', 'test_prefix_')
+        return config
