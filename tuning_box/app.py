@@ -16,9 +16,8 @@ import flask
 import flask_restful
 from flask_restful import fields
 from werkzeug import exceptions
-from werkzeug import routing
-from werkzeug import urls
 
+from tuning_box import converters
 from tuning_box import db
 
 api = flask_restful.Api()
@@ -115,32 +114,6 @@ class Environment(flask_restful.Resource):
         return None, 204
 
 
-class LevelsConverter(routing.BaseConverter):
-    """Converter that maps nested levels to list of tuples.
-
-    For example, "level1/value1/level2/value2/" is mapped to
-    [("level1", "value1"), ("level2", "value2")].
-
-    Note that since it can be empty it includes following "/":
-
-        Rule('/smth/<levels:levels>values')
-
-    will parse "/smth/values" and "/smth/level1/value1/values".
-    """
-
-    regex = "([^/]+/[^/]+/)*"
-
-    def to_python(self, value):
-        spl = value.split('/')
-        return list(zip(spl[::2], spl[1::2]))
-
-    def to_url(self, value):
-        parts = itertools.chain.from_iterable(value)
-        quoted_parts = (urls.url_quote(p, charset=self.map.charset, safe='')
-                        for p in parts)
-        return ''.join(p + '/' for p in quoted_parts)
-
-
 def iter_environment_level_values(environment, levels):
     env_levels = db.EnvironmentHierarchyLevel.get_for_environment(environment)
     level_pairs = itertools.chain(
@@ -209,7 +182,7 @@ class ResourceValues(flask_restful.Resource):
 
 def build_app():
     app = flask.Flask(__name__)
-    app.url_map.converters['levels'] = LevelsConverter
+    app.url_map.converters.update(converters.ALL)
     api.init_app(app)  # init_app spoils Api object if app is a blueprint
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  # silence warning
     db.db.init_app(app)
