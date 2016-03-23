@@ -38,15 +38,12 @@ component_fields = {
 }
 
 
-@api.resource('/components', '/components/<int:component_id>')
-class Component(flask_restful.Resource):
+@api.resource('/components')
+class ComponentsCollection(flask_restful.Resource):
     method_decorators = [flask_restful.marshal_with(component_fields)]
 
-    def get(self, component_id=None):
-        if component_id is None:
-            return db.Component.query.all()
-        else:
-            return db.Component.query.get_or_404(component_id)
+    def get(self):
+        return db.Component.query.all()
 
     def post(self):
         component = db.Component(name=flask.request.json['name'])
@@ -58,6 +55,14 @@ class Component(flask_restful.Resource):
         db.db.session.add(component)
         db.db.session.commit()
         return component, 201
+
+
+@api.resource('/components/<int:component_id>')
+class Component(flask_restful.Resource):
+    method_decorators = [flask_restful.marshal_with(component_fields)]
+
+    def get(self, component_id):
+        return db.Component.query.get_or_404(component_id)
 
     def delete(self, component_id):
         component = db.Component.query.get_or_404(component_id)
@@ -72,15 +77,12 @@ environment_fields = {
 }
 
 
-@api.resource('/environments', '/environments/<int:environment_id>')
-class Environment(flask_restful.Resource):
+@api.resource('/environments')
+class EnvironmentsCollection(flask_restful.Resource):
     method_decorators = [flask_restful.marshal_with(environment_fields)]
 
-    def get(self, environment_id=None):
-        if environment_id is None:
-            return db.Environment.query.all()
-        else:
-            return db.Environment.query.get_or_404(environment_id)
+    def get(self):
+        return db.Environment.query.all()
 
     def post(self):
         component_ids = flask.request.json['components']
@@ -97,6 +99,14 @@ class Environment(flask_restful.Resource):
         db.db.session.add(environment)
         db.db.session.commit()
         return environment, 201
+
+
+@api.resource('/environments/<int:environment_id>')
+class Environment(flask_restful.Resource):
+    method_decorators = [flask_restful.marshal_with(environment_fields)]
+
+    def get(self, environment_id):
+        return db.Environment.query.get_or_404(environment_id)
 
     def delete(self, environment_id):
         environment = db.Environment.query.get_or_404(environment_id)
