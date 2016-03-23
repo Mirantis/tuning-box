@@ -22,6 +22,7 @@ import flask
 from oslo_db.sqlalchemy import test_base
 from oslo_db.sqlalchemy import test_migrations
 import testscenarios
+from werkzeug import exceptions
 
 from tuning_box import db
 from tuning_box.tests import base
@@ -54,6 +55,39 @@ class TestDB(_DBTestCase):
             res = db.get_or_create(db.Component, name="nsname")
             self.assertIsNotNone(res.id)
             self.assertEqual(res.name, "nsname")
+
+
+class TestGetByIdOrName(_DBTestCase):
+    def setUp(self):
+        super(TestGetByIdOrName, self).setUp()
+        ctx = self.app.app_context()
+        ctx.push()
+        self.addCleanup(ctx.pop)
+        self.component = db.Component(name="compname")
+        db.db.session.add(self.component)
+        db.db.session.flush()
+
+    def test_by_id(self):
+        res = db.Component.query.get_by_id_or_name(self.component.id)
+        self.assertEqual(self.component, res)
+
+    def test_by_name(self):
+        res = db.Component.query.get_by_id_or_name(self.component.name)
+        self.assertEqual(self.component, res)
+
+    def test_by_id_fail(self):
+        self.assertRaises(
+            exceptions.NotFound,
+            db.Component.query.get_by_id_or_name,
+            self.component.id + 1,
+        )
+
+    def test_by_name_fail(self):
+        self.assertRaises(
+            exceptions.NotFound,
+            db.Component.query.get_by_id_or_name,
+            self.component.name + "_",
+        )
 
 
 class TestDBPrefixed(base.PrefixedTestCaseMixin, TestDB):

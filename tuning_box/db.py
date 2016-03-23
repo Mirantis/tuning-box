@@ -14,6 +14,7 @@ import functools
 import json
 import re
 
+import flask
 import flask_sqlalchemy
 import sqlalchemy.event
 import sqlalchemy.ext.declarative as sa_decl
@@ -34,6 +35,14 @@ def fk(cls, **kwargs):
 
 
 class BaseQuery(flask_sqlalchemy.BaseQuery):
+    def get_by_id_or_name(self, id_or_name):
+        result = self.get(id_or_name)
+        if result is None:
+            result = self.filter_by(name=id_or_name).one_or_none()
+        if result is None:
+            flask.abort(404)
+        return result
+
     if not hasattr(flask_sqlalchemy.BaseQuery, 'one_or_none'):
         # for sqlalchemy < 1.0.9
         from sqlalchemy.orm import exc as orm_exc  # noqa
