@@ -16,12 +16,12 @@ from tuning_box import converters
 from tuning_box.tests import base
 
 
-class TestLevelsConverter(base.TestCase):
+class TestLevels(base.TestCase):
     def setUp(self):
-        super(TestLevelsConverter, self).setUp()
+        super(TestLevels, self).setUp()
         self.map = routing.Map([
             routing.Rule('/smth/<levels:levels>values', endpoint='l'),
-        ], converters={'levels': converters.LevelsConverter})
+        ], converters={'levels': converters.Levels})
         self.mapad = self.map.bind('example.org', '/')
 
     def test_empty(self):

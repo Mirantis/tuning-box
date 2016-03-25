@@ -16,7 +16,7 @@ from werkzeug import routing
 from werkzeug import urls
 
 
-class LevelsConverter(routing.BaseConverter):
+class Levels(routing.BaseConverter):
     """Converter that maps nested levels to list of tuples.
 
     For example, "level1/value1/level2/value2/" is mapped to
@@ -42,5 +42,5 @@ class LevelsConverter(routing.BaseConverter):
         return ''.join(p + '/' for p in quoted_parts)
 
 ALL = {
-    'levels': LevelsConverter,
+    'levels': Levels,
 }
