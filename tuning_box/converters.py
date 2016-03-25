@@ -41,6 +41,22 @@ class Levels(routing.BaseConverter):
                         for p in parts)
         return ''.join(p + '/' for p in quoted_parts)
 
+
+class IdOrName(routing.BaseConverter):
+    """Converter that matches either int or URL part including "/" as string"""
+
+    regex = '[^/].*?'
+
+    def to_python(self, value):
+        try:
+            return int(value)
+        except ValueError:
+            return value
+
+    def to_url(self, value):
+        return super(IdOrName, self).to_url(str(value))
+
 ALL = {
     'levels': Levels,
+    'id_or_name': IdOrName,
 }
