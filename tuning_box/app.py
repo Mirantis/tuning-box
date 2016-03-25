@@ -85,6 +85,7 @@ class EnvironmentsCollection(flask_restful.Resource):
 
     def post(self):
         component_ids = flask.request.json['components']
+        # TODO(yorik-sar): verify that resource names do not clash
         components = [db.Component.query.get_or_404(i) for i in component_ids]
 
         hierarchy_levels = []
@@ -145,13 +146,21 @@ def get_environment_level_value(environment, levels):
 
 @api.resource(
     '/environments/<int:environment_id>' +
-    '/<levels:levels>resources/<int:resource_id>/values')
+    '/<levels:levels>resources/<id_or_name:resource_id_or_name>/values')
 class ResourceValues(flask_restful.Resource):
-    def put(self, environment_id, levels, resource_id):
+    def put(self, environment_id, levels, resource_id_or_name):
         environment = db.Environment.query.get_or_404(environment_id)
-        # TODO(yorik-sar): filter by environment
-        resdef = db.ResourceDefinition.query.get_or_404(resource_id)
         level_value = get_environment_level_value(environment, levels)
+        # TODO(yorik-sar): filter by environment
+        resdef = db.ResourceDefinition.query.get_by_id_or_name(
+            resource_id_or_name)
+        if resdef.id != resource_id_or_name:
+            return flask.redirect(api.url_for(
+                ResourceValues,
+                environment_id=environment_id,
+                levels=levels,
+                resource_id_or_name=resdef.id,
+            ), code=308)
         esv = db.get_or_create(
             db.ResourceValues,
             environment=environment,
@@ -162,11 +171,19 @@ class ResourceValues(flask_restful.Resource):
         db.db.session.commit()
         return None, 204
 
-    def get(self, environment_id, resource_id, levels):
+    def get(self, environment_id, resource_id_or_name, levels):
         environment = db.Environment.query.get_or_404(environment_id)
-        # TODO(yorik-sar): filter by environment
-        resdef = db.ResourceDefinition.query.get_or_404(resource_id)
         level_values = list(iter_environment_level_values(environment, levels))
+        # TODO(yorik-sar): filter by environment
+        resdef = db.ResourceDefinition.query.get_by_id_or_name(
+            resource_id_or_name)
+        if resdef.id != resource_id_or_name:
+            return flask.redirect(api.url_for(
+                ResourceValues,
+                environment_id=environment_id,
+                levels=levels,
+                resource_id_or_name=resdef.id,
+            ), code=308)
         resource_values = db.ResourceValues.query.filter_by(
             resource_definition=resdef,
             environment=environment,
